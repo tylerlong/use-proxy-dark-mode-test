@@ -1,5 +1,5 @@
 import { Component } from '@tylerlong/use-proxy/lib/react';
-import { Button, ConfigProvider, Space, Typography } from 'antd';
+import { Button, ConfigProvider, Space, Typography, theme } from 'antd';
 import { createRoot } from 'react-dom/client';
 import { useProxy } from '@tylerlong/use-proxy';
 import React from 'react';
@@ -16,15 +16,24 @@ class Store {
 
 const store = useProxy(new Store());
 
+const themeAlgorithm = window.matchMedia?.('(prefers-color-scheme: dark)').matches
+  ? theme.darkAlgorithm
+  : theme.defaultAlgorithm;
+document.body.style.backgroundColor = themeAlgorithm(theme.defaultSeed).colorBgContainer;
+
 class App extends Component<{ store: Store }> {
   public render() {
     const { store } = this.props;
     return (
-      <ConfigProvider>
+      <ConfigProvider
+        theme={{
+          algorithm: themeAlgorithm,
+        }}
+      >
         <Typography.Title>Hello world!</Typography.Title>
         <Space>
           <Button onClick={() => store.decrease()}>-</Button>
-          {store.count}
+          <Typography.Text>{store.count}</Typography.Text>
           <Button onClick={() => store.increase()}>+</Button>
         </Space>
       </ConfigProvider>
