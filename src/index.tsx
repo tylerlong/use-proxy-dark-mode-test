@@ -52,7 +52,6 @@ const App = (props: { store: Store }) => {
       darkModeMediaQuery.removeEventListener('change', mediaQueryListener);
     };
   });
-
   return result;
 };
 
