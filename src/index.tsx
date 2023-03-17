@@ -26,7 +26,6 @@ const App = (props: { store: Store }) => {
         <Button onClick={() => store.decrease()}>-</Button>
         <Typography.Text>{store.count}</Typography.Text>
         <Button onClick={() => store.increase()}>+</Button>
-        {_}
       </Space>
     </ConfigProvider>
   );
