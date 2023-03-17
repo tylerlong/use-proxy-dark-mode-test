@@ -3,6 +3,7 @@ import { Button, ConfigProvider, Space, Typography, theme } from 'antd';
 import { createRoot } from 'react-dom/client';
 import { useProxy } from '@tylerlong/use-proxy';
 import React from 'react';
+import { MappingAlgorithm } from 'antd/es/config-provider/context';
 
 class Store {
   public count = 0;
@@ -16,18 +17,21 @@ class Store {
 
 const store = useProxy(new Store());
 
-const themeAlgorithm = window.matchMedia?.('(prefers-color-scheme: dark)').matches
-  ? theme.darkAlgorithm
-  : theme.defaultAlgorithm;
-document.body.style.backgroundColor = themeAlgorithm(theme.defaultSeed).colorBgContainer;
-
-class App extends Component<{ store: Store }> {
+class App extends Component<{ store: Store }, { themeAlgorithm: MappingAlgorithm }> {
+  public constructor(props) {
+    super(props);
+    this.state = {
+      themeAlgorithm: window.matchMedia?.('(prefers-color-scheme: dark)').matches
+        ? theme.darkAlgorithm
+        : theme.defaultAlgorithm,
+    };
+  }
   public render() {
     const { store } = this.props;
     return (
       <ConfigProvider
         theme={{
-          algorithm: themeAlgorithm,
+          algorithm: this.state.themeAlgorithm,
         }}
       >
         <Typography.Title>Hello world!</Typography.Title>
@@ -38,6 +42,22 @@ class App extends Component<{ store: Store }> {
         </Space>
       </ConfigProvider>
     );
+  }
+  public componentDidMount(): void {
+    document.body.style.backgroundColor = this.state.themeAlgorithm(theme.defaultSeed).colorBgContainer;
+    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    darkModeMediaQuery.addEventListener('change', () => {
+      this.setState(
+        {
+          themeAlgorithm: window.matchMedia?.('(prefers-color-scheme: dark)').matches
+            ? theme.darkAlgorithm
+            : theme.defaultAlgorithm,
+        },
+        () => {
+          document.body.style.backgroundColor = this.state.themeAlgorithm(theme.defaultSeed).colorBgContainer;
+        },
+      );
+    });
   }
 }
 
