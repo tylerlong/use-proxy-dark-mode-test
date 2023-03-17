@@ -1,9 +1,8 @@
-import { Component } from '@tylerlong/use-proxy/lib/react';
 import { Button, ConfigProvider, Space, Typography, theme } from 'antd';
 import { createRoot } from 'react-dom/client';
-import { useProxy } from '@tylerlong/use-proxy';
-import React from 'react';
-import { MappingAlgorithm } from 'antd/es/config-provider/context';
+import { useProxy, run, releaseChildren } from '@tylerlong/use-proxy';
+import React, { useEffect, useState } from 'react';
+import { ProxyEvent } from '@tylerlong/use-proxy/lib/models';
 
 class Store {
   public count = 0;
@@ -17,49 +16,46 @@ class Store {
 
 const store = useProxy(new Store());
 
-class App extends Component<{ store: Store }, { themeAlgorithm: MappingAlgorithm }> {
-  public constructor(props) {
-    super(props);
-    this.state = {
-      themeAlgorithm: window.matchMedia?.('(prefers-color-scheme: dark)').matches
-        ? theme.darkAlgorithm
-        : theme.defaultAlgorithm,
+const App = (props: { store: Store }) => {
+  const [dark, setDark] = useState(window.matchMedia?.('(prefers-color-scheme: dark)').matches);
+  const [_, refresh] = useState(false);
+  const render = () => (
+    <ConfigProvider theme={{ algorithm: dark ? theme.darkAlgorithm : theme.defaultAlgorithm }}>
+      <Typography.Title>Hello world!</Typography.Title>
+      <Space>
+        <Button onClick={() => store.decrease()}>-</Button>
+        <Typography.Text>{store.count}</Typography.Text>
+        <Button onClick={() => store.increase()}>+</Button>
+        {_}
+      </Space>
+    </ConfigProvider>
+  );
+  const propsProxy = useProxy(props);
+  const [result, isTrigger] = run(propsProxy, render);
+  useEffect(() => {
+    document.body.style.backgroundColor = (dark ? theme.darkAlgorithm : theme.defaultAlgorithm)(
+      theme.defaultSeed,
+    ).colorBgContainer;
+    const useProxyListner = (event: ProxyEvent) => {
+      if (isTrigger(event)) {
+        refresh(!_);
+      }
     };
-  }
-  public render() {
-    const { store } = this.props;
-    return (
-      <ConfigProvider
-        theme={{
-          algorithm: this.state.themeAlgorithm,
-        }}
-      >
-        <Typography.Title>Hello world!</Typography.Title>
-        <Space>
-          <Button onClick={() => store.decrease()}>-</Button>
-          <Typography.Text>{store.count}</Typography.Text>
-          <Button onClick={() => store.increase()}>+</Button>
-        </Space>
-      </ConfigProvider>
-    );
-  }
-  public componentDidMount(): void {
-    document.body.style.backgroundColor = this.state.themeAlgorithm(theme.defaultSeed).colorBgContainer;
+    propsProxy.__emitter__.on('event', useProxyListner);
+    const mediaQueryListener = () => {
+      setDark(window.matchMedia?.('(prefers-color-scheme: dark)').matches);
+    };
     const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    darkModeMediaQuery.addEventListener('change', () => {
-      this.setState(
-        {
-          themeAlgorithm: window.matchMedia?.('(prefers-color-scheme: dark)').matches
-            ? theme.darkAlgorithm
-            : theme.defaultAlgorithm,
-        },
-        () => {
-          document.body.style.backgroundColor = this.state.themeAlgorithm(theme.defaultSeed).colorBgContainer;
-        },
-      );
-    });
-  }
-}
+    darkModeMediaQuery.addEventListener('change', mediaQueryListener);
+    return () => {
+      releaseChildren(propsProxy);
+      propsProxy.__emitter__.off('event', useProxyListner);
+      darkModeMediaQuery.removeEventListener('change', mediaQueryListener);
+    };
+  });
+
+  return result;
+};
 
 const container = document.createElement('div');
 document.body.appendChild(container);
